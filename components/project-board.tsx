@@ -75,11 +75,18 @@ export function ProjectBoard({ projectId, viewMode = "board", onViewModeChange }
     const taskId = active.id as string
     const newStatus = over.id as string
 
-    // Find the current task
-    const currentTask = tasks.find(task => task.id === taskId)
-    if (!currentTask || currentTask.status === newStatus) return
+    console.log('Drag end:', { taskId, newStatus, overId: over.id })
 
-    // Optimistic update
+    // Find the current task in filtered tasks
+    const currentTask = filteredTasks.find(task => task.id === taskId)
+    if (!currentTask || currentTask.status === newStatus) {
+      console.log('No task found or same status:', { currentTask, newStatus })
+      return
+    }
+
+    console.log('Updating task:', { taskId, from: currentTask.status, to: newStatus })
+
+    // Optimistic update - use the global tasks array for mutate
     const originalTasks = tasks
     mutate(
       tasks.map(task =>
@@ -90,13 +97,15 @@ export function ProjectBoard({ projectId, viewMode = "board", onViewModeChange }
 
     try {
       setIsUpdating(true)
-      await updateTask(taskId, { status: newStatus as any })
+      const result = await updateTask(taskId, { status: newStatus as any })
+      console.log('Update result:', result)
       
       // Revalidate data from server to ensure consistency
       mutate()
       
       toast.success("Task status updated successfully")
     } catch (error) {
+      console.error('Update error:', error)
       // Revert on error
       mutate(originalTasks, false)
       toast.error("Failed to update task status")
@@ -190,11 +199,14 @@ export function ProjectBoard({ projectId, viewMode = "board", onViewModeChange }
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="p-2">
-                    <SortableContext
-                      items={tasksByStatus[column.status].map(task => task.id)}
-                      strategy={verticalListSortingStrategy}
+                    <div 
+                      id={column.status}
+                      className="space-y-2 min-h-[200px]"
                     >
-                      <div className="space-y-2 min-h-[200px]">
+                      <SortableContext
+                        items={tasksByStatus[column.status].map(task => task.id)}
+                        strategy={verticalListSortingStrategy}
+                      >
                         {tasksByStatus[column.status].map((task) => (
                           <TaskCard key={task.id} task={task} />
                         ))}
@@ -203,8 +215,8 @@ export function ProjectBoard({ projectId, viewMode = "board", onViewModeChange }
                             No tasks
                           </div>
                         )}
-                      </div>
-                    </SortableContext>
+                      </SortableContext>
+                    </div>
                   </CardContent>
                 </Card>
               ))}
