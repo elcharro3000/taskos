@@ -13,7 +13,7 @@ export async function GET() {
     let taskCount = 0
     
     try {
-      await prisma.$queryRaw`SELECT 1`
+      await prisma.task.count()
       dbStatus = 'Connected'
       
       // Get counts
