@@ -1,7 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { UpdateTaskSchema } from '@/src/lib/api'
+import { z } from 'zod'
 import { withLogging } from '@/src/lib/logger'
 import { prisma } from '@/src/lib/db'
+
+// Simple validation schema for partial updates
+const SimpleUpdateTaskSchema = z.object({
+  title: z.string().optional(),
+  description: z.string().optional(),
+  status: z.string().optional(),
+  priority: z.string().optional(),
+  dueAt: z.string().datetime().optional(),
+  projectId: z.string().optional(),
+  labelIds: z.array(z.string()).optional()
+})
 
 async function getTask(id: string) {
   const task = await prisma.task.findUnique({
@@ -43,87 +54,99 @@ async function getTask(id: string) {
 
 async function updateTask(id: string, request: NextRequest) {
   const body = await request.json()
-  const validatedData = UpdateTaskSchema.parse(body)
+  
+  // Log the request body for debugging
+  console.log('PATCH /api/tasks/[id] - Request body:', JSON.stringify(body))
+  
+  try {
+    const validatedData = SimpleUpdateTaskSchema.parse(body)
+    console.log('PATCH /api/tasks/[id] - Validated data:', JSON.stringify(validatedData))
 
-  const { labelIds, ...taskData } = validatedData
+    const { labelIds, ...taskData } = validatedData
 
-  // Update task
-  const task = await prisma.task.update({
-    where: { id },
-    data: {
-      ...taskData,
-      dueAt: taskData.dueAt ? new Date(taskData.dueAt) : null,
-      completedAt: taskData.status === 'COMPLETED' 
-        ? new Date() 
-        : null
-    },
-    include: {
-      project: {
-        select: {
-          id: true,
-          name: true,
-          color: true
-        }
+    // Update task
+    const task = await prisma.task.update({
+      where: { id },
+      data: {
+        ...taskData,
+        dueAt: taskData.dueAt ? new Date(taskData.dueAt) : undefined,
+        completedAt: taskData.status === 'COMPLETED' 
+          ? new Date() 
+          : taskData.status && taskData.status !== 'COMPLETED'
+          ? null
+          : undefined
       },
-      labels: {
-        include: {
-          label: true
-        }
-      }
-    }
-  })
-
-  // Update labels if provided
-  if (labelIds !== undefined) {
-    await prisma.taskLabel.deleteMany({
-      where: { taskId: id }
-    })
-
-    if (labelIds.length > 0) {
-      await prisma.taskLabel.createMany({
-        data: labelIds.map(labelId => ({
-          taskId: id,
-          labelId
-        }))
-      })
-
-      // Refetch with updated labels
-      const updatedTask = await prisma.task.findUnique({
-        where: { id },
-        include: {
-          project: {
-            select: {
-              id: true,
-              name: true,
-              color: true
-            }
-          },
-          labels: {
-            include: {
-              label: true
-            }
+      include: {
+        project: {
+          select: {
+            id: true,
+            name: true,
+            color: true
+          }
+        },
+        labels: {
+          include: {
+            label: true
           }
         }
+      }
+    })
+
+    // Update labels if provided
+    if (labelIds !== undefined) {
+      await prisma.taskLabel.deleteMany({
+        where: { taskId: id }
       })
 
-      return {
-        ...updatedTask!,
-        labels: updatedTask!.labels.map(tl => tl.label),
-        dueAt: updatedTask!.dueAt?.toISOString() || null,
-        completedAt: updatedTask!.completedAt?.toISOString() || null,
-        createdAt: updatedTask!.createdAt.toISOString(),
-        updatedAt: updatedTask!.updatedAt.toISOString()
+      if (labelIds.length > 0) {
+        await prisma.taskLabel.createMany({
+          data: labelIds.map(labelId => ({
+            taskId: id,
+            labelId
+          }))
+        })
+
+        // Refetch with updated labels
+        const updatedTask = await prisma.task.findUnique({
+          where: { id },
+          include: {
+            project: {
+              select: {
+                id: true,
+                name: true,
+                color: true
+              }
+            },
+            labels: {
+              include: {
+                label: true
+              }
+            }
+          }
+        })
+
+        return {
+          ...updatedTask!,
+          labels: updatedTask!.labels.map(tl => tl.label),
+          dueAt: updatedTask!.dueAt?.toISOString() || null,
+          completedAt: updatedTask!.completedAt?.toISOString() || null,
+          createdAt: updatedTask!.createdAt.toISOString(),
+          updatedAt: updatedTask!.updatedAt.toISOString()
+        }
       }
     }
-  }
 
-  return {
-    ...task,
-    labels: task.labels.map(tl => tl.label),
-    dueAt: task.dueAt?.toISOString() || null,
-    completedAt: task.completedAt?.toISOString() || null,
-    createdAt: task.createdAt.toISOString(),
-    updatedAt: task.updatedAt.toISOString()
+    return {
+      ...task,
+      labels: task.labels.map(tl => tl.label),
+      dueAt: task.dueAt?.toISOString() || null,
+      completedAt: task.completedAt?.toISOString() || null,
+      createdAt: task.createdAt.toISOString(),
+      updatedAt: task.updatedAt.toISOString()
+    }
+  } catch (validationError) {
+    console.error('PATCH /api/tasks/[id] - Validation error:', validationError)
+    throw validationError
   }
 }
 
@@ -156,13 +179,23 @@ export const PATCH = withLogging(
       const task = await updateTask(params.id, request)
       return NextResponse.json(task)
     } catch (error) {
-      if (error instanceof Error && error.name === 'ZodError') {
+      console.error('PATCH /api/tasks/[id] - Error:', error)
+      
+      if (error instanceof z.ZodError) {
         return NextResponse.json(
-          { error: 'Validation error', details: error.message },
+          { 
+            error: 'Validation error', 
+            details: error.errors,
+            message: error.message 
+          },
           { status: 400 }
         )
       }
-      throw error
+      
+      return NextResponse.json(
+        { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
+        { status: 500 }
+      )
     }
   },
   'PATCH',
