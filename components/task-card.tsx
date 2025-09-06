@@ -4,7 +4,7 @@ import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Task, Priority } from "@/src/lib/api"
+import { Task } from "@/src/lib/api"
 import { Clock, Calendar, Tag } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -31,7 +31,7 @@ export function TaskCard({ task, isDragging = false }: TaskCardProps) {
     transition,
   }
 
-  const getPriorityColor = (priority: Priority) => {
+  const getPriorityColor = (priority: string) => {
     switch (priority) {
       case "URGENT":
         return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"

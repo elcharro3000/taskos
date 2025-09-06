@@ -54,7 +54,8 @@ export function QuickAddDialog() {
       await createTask({
         title: title.trim(),
         status: "TODO",
-        priority: "MEDIUM"
+        priority: "MEDIUM",
+        labelIds: []
       })
       
       // Revalidate the tasks list

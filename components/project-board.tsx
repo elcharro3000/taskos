@@ -19,12 +19,12 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { List, Grid, Plus } from "lucide-react"
-import { Task, TaskStatus } from "@/src/lib/api"
+import { Task } from "@/src/lib/api"
 import { useTasks, updateTask } from "@/src/hooks/useTasks"
 import { toast } from "@/src/lib/toast"
 import { TaskCard } from "@/components/task-card"
 
-const statusColumns: { status: TaskStatus; title: string; color: string }[] = [
+const statusColumns: { status: string; title: string; color: string }[] = [
   { status: "TODO", title: "To Do", color: "bg-gray-100 dark:bg-gray-800" },
   { status: "IN_PROGRESS", title: "In Progress", color: "bg-blue-100 dark:bg-blue-800" },
   { status: "COMPLETED", title: "Completed", color: "bg-green-100 dark:bg-green-800" },
@@ -60,7 +60,7 @@ export function ProjectBoard({ projectId, viewMode = "board", onViewModeChange }
       .filter(task => task.status === column.status)
       .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
     return acc
-  }, {} as Record<TaskStatus, Task[]>)
+  }, {} as Record<string, Task[]>)
 
   const handleDragStart = (event: DragStartEvent) => {
     setActiveId(event.active.id as string)
@@ -73,7 +73,7 @@ export function ProjectBoard({ projectId, viewMode = "board", onViewModeChange }
     if (!over) return
 
     const taskId = active.id as string
-    const newStatus = over.id as TaskStatus
+    const newStatus = over.id as string
 
     // Find the current task
     const currentTask = tasks.find(task => task.id === taskId)
@@ -83,14 +83,14 @@ export function ProjectBoard({ projectId, viewMode = "board", onViewModeChange }
     const originalTasks = tasks
     mutate(
       tasks.map(task =>
-        task.id === taskId ? { ...task, status: newStatus } : task
+        task.id === taskId ? { ...task, status: newStatus as any } : task
       ),
       false
     )
 
     try {
       setIsUpdating(true)
-      await updateTask(taskId, { status: newStatus })
+      await updateTask(taskId, { status: newStatus as any })
       toast.success("Task status updated successfully")
     } catch (error) {
       // Revert on error

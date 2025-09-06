@@ -55,13 +55,9 @@ async function updateTask(id: string, request: NextRequest) {
     data: {
       ...taskData,
       dueAt: taskData.dueAt ? new Date(taskData.dueAt) : null,
-      completedAt: taskData.status === 'COMPLETED' && !taskData.completedAt 
+      completedAt: taskData.status === 'COMPLETED' 
         ? new Date() 
-        : taskData.completedAt 
-        ? new Date(taskData.completedAt) 
-        : taskData.status !== 'COMPLETED' 
-        ? null 
-        : undefined
+        : null
     },
     include: {
       project: {

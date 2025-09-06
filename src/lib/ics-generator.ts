@@ -1,6 +1,27 @@
-import { Task } from "@/src/lib/api"
+// Define a more flexible task type for ICS generation
+interface ICSTask {
+  id: string
+  title: string
+  description?: string | null
+  status: string
+  priority: string
+  dueAt?: string | null
+  completedAt?: string | null
+  createdAt: string
+  updatedAt: string
+  project?: {
+    id: string
+    name: string
+    color?: string | null
+  } | null
+  labels?: Array<{
+    id: string
+    name: string
+    color: string
+  }>
+}
 
-export function generateICS(tasks: Task[]): string {
+export function generateICS(tasks: ICSTask[]): string {
   const now = new Date()
   const timestamp = now.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'
   

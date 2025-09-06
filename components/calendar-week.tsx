@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ChevronLeft, ChevronRight, Plus, Clock } from "lucide-react"
-import { Task, Priority } from "@/src/lib/api"
+import { Task } from "@/src/lib/api"
 import { useTasks } from "@/src/hooks/useTasks"
 import { cn } from "@/lib/utils"
 
@@ -56,7 +56,7 @@ export function CalendarWeek({ projectId }: CalendarWeekProps) {
     })
   }
 
-  const getPriorityColor = (priority: Priority) => {
+  const getPriorityColor = (priority: string) => {
     switch (priority) {
       case "URGENT":
         return "border-l-red-500 bg-red-50 dark:bg-red-950"

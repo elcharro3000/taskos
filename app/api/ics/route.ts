@@ -32,12 +32,17 @@ async function getTasksForICS() {
   })
 
   return tasks.map(task => ({
-    ...task,
-    labels: task.labels.map(tl => tl.label),
+    id: task.id,
+    title: task.title,
+    description: task.description,
+    status: task.status as string,
+    priority: task.priority as string,
     dueAt: task.dueAt?.toISOString() || null,
     completedAt: task.completedAt?.toISOString() || null,
     createdAt: task.createdAt.toISOString(),
-    updatedAt: task.updatedAt.toISOString()
+    updatedAt: task.updatedAt.toISOString(),
+    project: task.project,
+    labels: task.labels.map(tl => tl.label)
   }))
 }
 
