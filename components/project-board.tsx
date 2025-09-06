@@ -9,6 +9,7 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
+  useDroppable,
 } from "@dnd-kit/core"
 import {
   SortableContext,
@@ -30,6 +31,57 @@ const statusColumns: { status: string; title: string; color: string }[] = [
   { status: "COMPLETED", title: "Completed", color: "bg-green-100 dark:bg-green-800" },
   { status: "CANCELLED", title: "Cancelled", color: "bg-red-100 dark:bg-red-800" },
 ]
+
+function DroppableColumn({ 
+  column, 
+  tasks, 
+  onTaskUpdate 
+}: { 
+  column: { status: string; title: string; color: string }
+  tasks: Task[]
+  onTaskUpdate: () => void
+}) {
+  const { setNodeRef } = useDroppable({
+    id: column.status,
+  })
+
+  return (
+    <Card className="h-fit">
+      <CardHeader className={`${column.color} rounded-t-2xl`}>
+        <CardTitle className="text-sm font-medium">
+          {column.title}
+        </CardTitle>
+        <CardDescription>
+          {tasks.length} tasks
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="p-2">
+        <div 
+          ref={setNodeRef}
+          className="space-y-2 min-h-[200px]"
+        >
+          <SortableContext
+            items={tasks.map(task => task.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            {tasks.map((task) => (
+              <TaskCard 
+                key={task.id} 
+                task={task} 
+                onTaskUpdate={onTaskUpdate}
+              />
+            ))}
+            {tasks.length === 0 && (
+              <div className="text-center py-8 text-muted-foreground text-sm">
+                No tasks
+              </div>
+            )}
+          </SortableContext>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
 
 interface ProjectBoardProps {
   projectId?: string
@@ -189,40 +241,12 @@ export function ProjectBoard({ projectId, viewMode = "board", onViewModeChange }
           >
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {statusColumns.map((column) => (
-                <Card key={column.status} className="h-fit">
-                  <CardHeader className={`${column.color} rounded-t-2xl`}>
-                    <CardTitle className="text-sm font-medium">
-                      {column.title}
-                    </CardTitle>
-                    <CardDescription>
-                      {tasksByStatus[column.status].length} tasks
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="p-2">
-                    <div 
-                      id={column.status}
-                      className="space-y-2 min-h-[200px]"
-                    >
-                      <SortableContext
-                        items={tasksByStatus[column.status].map(task => task.id)}
-                        strategy={verticalListSortingStrategy}
-                      >
-                        {tasksByStatus[column.status].map((task) => (
-                          <TaskCard 
-                            key={task.id} 
-                            task={task} 
-                            onTaskUpdate={() => mutate()}
-                          />
-                        ))}
-                        {tasksByStatus[column.status].length === 0 && (
-                          <div className="text-center py-8 text-muted-foreground text-sm">
-                            No tasks
-                          </div>
-                        )}
-                      </SortableContext>
-                    </div>
-                  </CardContent>
-                </Card>
+                <DroppableColumn
+                  key={column.status}
+                  column={column}
+                  tasks={tasksByStatus[column.status]}
+                  onTaskUpdate={() => mutate()}
+                />
               ))}
             </div>
 
