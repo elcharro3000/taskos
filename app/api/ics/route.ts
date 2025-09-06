@@ -4,44 +4,50 @@ import { withLogging } from "@/src/lib/logger"
 import { prisma } from "@/src/lib/db"
 
 async function getTasksForICS() {
-  const tasks = await prisma.task.findMany({
-    where: {
-      dueAt: {
-        not: null
-      }
-    },
-    include: {
-      project: {
-        select: {
-          id: true,
-          name: true,
-          color: true
+  try {
+    const tasks = await prisma.task.findMany({
+      where: {
+        dueAt: {
+          not: null
         }
       },
-      labels: {
-        include: {
-          label: true
+      include: {
+        project: {
+          select: {
+            id: true,
+            name: true,
+            color: true
+          }
+        },
+        labels: {
+          include: {
+            label: true
+          }
         }
+      },
+      orderBy: {
+        dueAt: 'asc'
       }
-    },
-    orderBy: {
-      dueAt: 'asc'
-    }
-  })
+    })
 
-  return tasks.map(task => ({
-    id: task.id,
-    title: task.title,
-    description: task.description,
-    status: task.status as string,
-    priority: task.priority as string,
-    dueAt: task.dueAt?.toISOString() || null,
-    completedAt: task.completedAt?.toISOString() || null,
-    createdAt: task.createdAt.toISOString(),
-    updatedAt: task.updatedAt.toISOString(),
-    project: task.project,
-    labels: task.labels.map(tl => tl.label)
-  }))
+    return tasks.map(task => ({
+      id: task.id,
+      title: task.title,
+      description: task.description,
+      status: task.status as string,
+      priority: task.priority as string,
+      dueAt: task.dueAt?.toISOString() || null,
+      completedAt: task.completedAt?.toISOString() || null,
+      createdAt: task.createdAt.toISOString(),
+      updatedAt: task.updatedAt.toISOString(),
+      project: task.project,
+      labels: task.labels.map(tl => tl.label)
+    }))
+  } catch (error) {
+    console.error('Error fetching tasks for ICS:', error)
+    // Return empty array if there's a database error
+    return []
+  }
 }
 
 export const GET = withLogging(
