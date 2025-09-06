@@ -208,7 +208,11 @@ export function ProjectBoard({ projectId, viewMode = "board", onViewModeChange }
                         strategy={verticalListSortingStrategy}
                       >
                         {tasksByStatus[column.status].map((task) => (
-                          <TaskCard key={task.id} task={task} />
+                          <TaskCard 
+                            key={task.id} 
+                            task={task} 
+                            onTaskUpdate={() => mutate()}
+                          />
                         ))}
                         {tasksByStatus[column.status].length === 0 && (
                           <div className="text-center py-8 text-muted-foreground text-sm">

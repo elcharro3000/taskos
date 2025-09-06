@@ -4,16 +4,22 @@ import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Task } from "@/src/lib/api"
-import { Clock, Calendar, Tag } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Task, deleteTask } from "@/src/lib/api"
+import { Clock, Calendar, Tag, MoreVertical, Trash2, X } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useState } from "react"
+import { toast } from "@/src/lib/toast"
 
 interface TaskCardProps {
   task: Task
   isDragging?: boolean
+  onTaskUpdate?: () => void
 }
 
-export function TaskCard({ task, isDragging = false }: TaskCardProps) {
+export function TaskCard({ task, isDragging = false, onTaskUpdate }: TaskCardProps) {
+  const [showActions, setShowActions] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
   const {
     attributes,
     listeners,
@@ -78,6 +84,50 @@ export function TaskCard({ task, isDragging = false }: TaskCardProps) {
     }
   }
 
+  const handleDelete = async () => {
+    if (isDeleting) return
+    
+    try {
+      setIsDeleting(true)
+      await deleteTask(task.id)
+      toast.success("Task deleted successfully")
+      onTaskUpdate?.()
+    } catch (error) {
+      toast.error("Failed to delete task")
+    } finally {
+      setIsDeleting(false)
+      setShowActions(false)
+    }
+  }
+
+  const handleCancel = async () => {
+    if (isDeleting) return
+    
+    try {
+      setIsDeleting(true)
+      // Update task status to CANCELLED
+      const response = await fetch(`/api/tasks/${task.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: 'CANCELLED' }),
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to cancel task')
+      }
+      
+      toast.success("Task cancelled successfully")
+      onTaskUpdate?.()
+    } catch (error) {
+      toast.error("Failed to cancel task")
+    } finally {
+      setIsDeleting(false)
+      setShowActions(false)
+    }
+  }
+
   return (
     <Card
       ref={setNodeRef}
@@ -93,11 +143,51 @@ export function TaskCard({ task, isDragging = false }: TaskCardProps) {
       <CardContent className="p-3">
         <div className="space-y-2">
           <div className="flex items-start justify-between">
-            <h4 className="font-medium text-sm line-clamp-2">{task.title}</h4>
-            <Badge variant="outline" className={cn("text-xs", getStatusColor(task.status))}>
-              {task.status.replace("_", " ")}
-            </Badge>
+            <h4 className="font-medium text-sm line-clamp-2 flex-1 mr-2">{task.title}</h4>
+            <div className="flex items-center gap-1">
+              <Badge variant="outline" className={cn("text-xs", getStatusColor(task.status))}>
+                {task.status.replace("_", " ")}
+              </Badge>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 w-6 p-0"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setShowActions(!showActions)
+                }}
+              >
+                <MoreVertical className="h-3 w-3" />
+              </Button>
+            </div>
           </div>
+          
+          {showActions && (
+            <div className="flex gap-1 pt-2 border-t">
+              {task.status !== 'CANCELLED' && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs"
+                  onClick={handleCancel}
+                  disabled={isDeleting}
+                >
+                  <X className="h-3 w-3 mr-1" />
+                  Cancel
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs text-red-600 hover:text-red-700"
+                onClick={handleDelete}
+                disabled={isDeleting}
+              >
+                <Trash2 className="h-3 w-3 mr-1" />
+                Delete
+              </Button>
+            </div>
+          )}
           
           {task.description && (
             <p className="text-xs text-muted-foreground line-clamp-2">
