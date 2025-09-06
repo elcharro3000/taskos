@@ -91,6 +91,10 @@ export function ProjectBoard({ projectId, viewMode = "board", onViewModeChange }
     try {
       setIsUpdating(true)
       await updateTask(taskId, { status: newStatus as any })
+      
+      // Revalidate data from server to ensure consistency
+      mutate()
+      
       toast.success("Task status updated successfully")
     } catch (error) {
       // Revert on error
