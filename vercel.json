@@ -3,8 +3,5 @@
   "outputDirectory": ".next",
   "framework": "nextjs",
   "installCommand": "npm install",
-  "devCommand": "npm run dev",
-  "env": {
-    "DATABASE_URL": "postgresql://postgres:016720TaskOS$@db.jwylnxtnfkjhkvweniic.supabase.co:5432/postgres"
-  }
+  "devCommand": "npm run dev"
 }

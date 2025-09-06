@@ -68,13 +68,27 @@ export const POST = withLogging(
       const project = await createProject(request)
       return NextResponse.json(project, { status: 201 })
     } catch (error) {
+      console.error('Project creation error:', error)
+      
       if (error instanceof Error && error.name === 'ZodError') {
         return NextResponse.json(
           { error: 'Validation error', details: error.message },
           { status: 400 }
         )
       }
-      throw error
+      
+      // Handle Prisma errors
+      if (error instanceof Error) {
+        return NextResponse.json(
+          { error: 'Database error', details: error.message },
+          { status: 500 }
+        )
+      }
+      
+      return NextResponse.json(
+        { error: 'Internal server error' },
+        { status: 500 }
+      )
     }
   },
   'POST',
