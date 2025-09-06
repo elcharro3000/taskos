@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
 import { UpdateProjectSchema } from '@/src/lib/api'
 import { withLogging } from '@/src/lib/logger'
-
-const prisma = new PrismaClient()
+import { prisma } from '@/src/lib/db'
 
 async function getProject(id: string) {
   const project = await prisma.project.findUnique({

@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
-import { PrismaClient } from "@prisma/client"
 import { generateICS } from "@/src/lib/ics-generator"
 import { withLogging } from "@/src/lib/logger"
-
-const prisma = new PrismaClient()
+import { prisma } from "@/src/lib/db"
 
 async function getTasksForICS() {
   const tasks = await prisma.task.findMany({
@@ -49,6 +47,15 @@ async function getTasksForICS() {
 export const GET = withLogging(
   async (request: NextRequest) => {
     try {
+      // Check if DATABASE_URL is set
+      if (!process.env.DATABASE_URL) {
+        console.error('DATABASE_URL environment variable is not set')
+        return NextResponse.json(
+          { error: 'Database configuration error' },
+          { status: 500 }
+        )
+      }
+
       const tasks = await getTasksForICS()
       const icsContent = generateICS(tasks)
       
@@ -64,8 +71,17 @@ export const GET = withLogging(
       })
     } catch (error) {
       console.error('Error generating ICS feed:', error)
+      
+      // Handle Prisma initialization errors
+      if (error instanceof Error && error.message.includes('PrismaClientInitializationError')) {
+        return NextResponse.json(
+          { error: 'Database connection failed', details: error.message },
+          { status: 500 }
+        )
+      }
+      
       return NextResponse.json(
-        { error: 'Failed to generate calendar feed' },
+        { error: 'Failed to generate calendar feed', details: error instanceof Error ? error.message : 'Unknown error' },
         { status: 500 }
       )
     }
