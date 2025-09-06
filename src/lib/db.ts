@@ -8,6 +8,11 @@ const prismaClientSingleton = () => {
         url: process.env.DATABASE_URL,
       },
     },
+    // Add connection management for serverless
+    transactionOptions: {
+      maxWait: 5000, // 5 seconds
+      timeout: 10000, // 10 seconds
+    },
   })
 }
 
